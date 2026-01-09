@@ -21,6 +21,15 @@
         .custom-scrollbar-h::-webkit-scrollbar { height: 2px; }
         .custom-scrollbar-h::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar-h::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        
+        @keyframes bounceIn {
+            0% { opacity: 0; transform: translate(-50%, 10px); }
+            60% { opacity: 1; transform: translate(-50%, -5px); }
+            100% { opacity: 1; transform: translate(-50%, 0); }
+        }
+        .animate-bounce-in {
+            animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
     </style>
 </head>
 <body>
@@ -28,6 +37,12 @@
 
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef } = React;
+
+        // Helper to format numbers with dot as thousands separator (e.g. 10.056)
+        const formatNum = (num) => {
+            if (num === undefined || num === null) return "0";
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        };
 
         // --- COMPONENTS ---
 
@@ -96,30 +111,42 @@
             const [currentStep, setCurrentStep] = useState(0);
             const [isAnimating, setIsAnimating] = useState(false);
 
-            const people = useMemo(() => 
-                INITIAL_DATA.map(p => {
+            const totalSteps = 8; // Start + 7 Steps + Final = 9 points
+
+            const people = useMemo(() => {
+                // First, sort the initial data alphabetically by name
+                const sortedAlphabetically = [...INITIAL_DATA].sort((a, b) => a.name.localeCompare(b.name));
+
+                return sortedAlphabetically.map(p => {
                     const history = [0];
                     let current = 0;
-                    for(let i=1; i<5; i++) {
+                    // Run for 7 intermediate steps
+                    for(let i=1; i < totalSteps; i++) {
                         let step;
-                        if ((p.name === 'Rune' || p.name === 'Dan') && i < 4) {
-                            step = (p.score * 0.04) * (0.5 + Math.random());
-                        } else if ((p.name === 'Rune' || p.name === 'Dan') && i === 4) {
-                            step = (p.score * 0.75) * (0.9 + Math.random() * 0.2);
+                        // Rune and Dan start extremely slow to build tension
+                        if ((p.name === 'Rune' || p.name === 'Dan') && i < (totalSteps - 1)) {
+                            // Keep them crawling until the very end
+                            step = (p.score * 0.02) * (0.5 + Math.random());
+                        } else if ((p.name === 'Rune' || p.name === 'Dan') && i === (totalSteps - 1)) {
+                            // Huge surge in the final intermediate step
+                            step = (p.score * 0.8) * (0.9 + Math.random() * 0.2);
                         } else {
-                            step = (p.score / 5) * (0.4 + Math.random() * 0.8);
+                            // Standard progression for others
+                            step = (p.score / totalSteps) * (0.4 + Math.random() * 0.8);
                         }
                         current = Math.min(p.score, Math.floor(current + step));
                         history.push(current);
                     }
+                    // Always end with final score
                     history.push(p.score);
                     return { ...p, history, color: REGION_THEMES[p.region]?.color || "#cbd5e1" };
-                })
-            , []);
+                });
+            }, []);
 
             const maxScore = 11000;
-            const timeLabels = ["Start", "Week 1", "Week 2", "Week 3", "Week 4", "Final"];
+            const timeLabels = ["Start", "Step 1", "Step 2", "Step 3", "Step 4", "Step 5", "Step 6", "Step 7", "Final"];
 
+            // Calculate current leaderboard standings (for MVP summary)
             const currentStandings = useMemo(() => 
                 [...people].sort((a, b) => b.history[currentStep] - a.history[currentStep])
             , [people, currentStep]);
@@ -153,10 +180,10 @@
 
             useEffect(() => {
                 let interval;
-                if (isAnimating && currentStep < 5) {
+                if (isAnimating && currentStep < totalSteps) {
                     interval = setInterval(() => {
-                        setCurrentStep(prev => (prev < 5 ? prev + 1 : 5));
-                    }, 1500);
+                        setCurrentStep(prev => (prev < totalSteps ? prev + 1 : totalSteps));
+                    }, 1200);
                 } else {
                     setIsAnimating(false);
                 }
@@ -194,33 +221,13 @@
 
                     {/* Main Content */}
                     <div className="flex-1 grid grid-cols-12 gap-6 min-h-0 mb-4">
-                        {/* Sidebar Standings */}
-                        <div className="col-span-2 bg-slate-900/40 rounded-3xl border border-slate-800 p-4 flex flex-col min-h-0">
-                            <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-4 flex justify-between items-center">
-                                Standings <i data-lucide="users" className="w-3 h-3"></i>
-                            </h3>
-                            <div className="flex-1 overflow-y-auto space-y-1.5 pr-2 custom-scrollbar">
-                                {currentStandings.map((person, idx) => (
-                                    <div key={person.id} className={`flex items-center justify-between p-2 rounded-xl border transition-all duration-500 ${idx === 0 && currentStep > 0 ? 'bg-indigo-600/20 border-indigo-500/40 scale-[1.02]' : 'bg-slate-900/80 border-slate-800'}`}>
-                                        <div className="flex items-center gap-2 min-w-0">
-                                            <span className="text-[10px] font-mono text-slate-600 w-4 shrink-0">{idx + 1}</span>
-                                            <MiniFlag region={person.region} />
-                                            <span className="text-xs font-bold truncate text-slate-200">{person.name}</span>
-                                        </div>
-                                        <span className="text-[11px] font-mono font-bold text-indigo-400">{person.history[currentStep]}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Main Graph Area */}
-                        <div className="col-span-10 bg-slate-900/20 rounded-3xl border border-slate-800 p-8 flex flex-col relative min-h-0 shadow-2xl">
+                        <div className="col-span-12 bg-slate-900/20 rounded-3xl border border-slate-800 p-8 flex flex-col relative min-h-0 shadow-2xl">
                             {/* Y-Axis Labels */}
                             <div className="absolute left-4 top-8 bottom-24 flex flex-col justify-between text-[10px] font-mono text-slate-600">
-                                <span>11,000</span>
-                                <span>8,250</span>
-                                <span>5,500</span>
-                                <span>2,750</span>
+                                <span>11.000</span>
+                                <span>8.250</span>
+                                <span>5.500</span>
+                                <span>2.750</span>
                                 <span>0</span>
                             </div>
 
@@ -236,12 +243,20 @@
                                         <div key={person.id} className="h-full flex flex-col justify-end items-center group" style={{ width: '7%' }}>
                                             <div className="w-full rounded-t-xl transition-all duration-1000 ease-out relative"
                                                 style={{ height: `${height}%`, backgroundColor: person.color, opacity: isLeader ? 1 : 0.75, boxShadow: isLeader ? `0 0 25px ${person.color}44` : 'none' }}>
+                                                
+                                                {/* Final Count Label - Shown after animation is done */}
+                                                {currentStep === totalSteps && (
+                                                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 text-[12px] font-black text-white bg-slate-800/80 px-2 py-0.5 rounded-lg border border-slate-700 shadow-lg z-20 animate-bounce-in">
+                                                        {formatNum(person.score)}
+                                                    </div>
+                                                )}
+
                                                 <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 px-2 py-1 rounded text-[10px] font-mono border border-slate-700 z-10">
-                                                    {person.history[currentStep]}
+                                                    {formatNum(person.history[currentStep])}
                                                 </div>
                                             </div>
-                                            <div className="absolute top-full mt-3 flex flex-col items-center w-full">
-                                                <span className={`text-[11px] font-black uppercase truncate w-full text-center ${isLeader ? 'text-indigo-400' : 'text-slate-300'}`}>
+                                            <div className="absolute top-full mt-3 flex flex-col items-center w-full text-center">
+                                                <span className={`text-[11px] font-black uppercase truncate w-full ${isLeader ? 'text-indigo-400' : 'text-slate-300'}`}>
                                                     {person.name}
                                                 </span>
                                                 <span className="text-[9px] font-bold text-slate-600 uppercase mt-0.5">{REGION_THEMES[person.region].label}</span>
@@ -263,19 +278,19 @@
                     </div>
 
                     {/* Summary Footer */}
-                    <footer className={`mt-2 flex gap-4 transition-all duration-1000 ${currentStep === 5 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+                    <footer className={`mt-2 flex gap-4 transition-all duration-1000 ${currentStep === totalSteps ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
                         <div className="flex-1 bg-slate-900/80 p-5 rounded-3xl border border-slate-800 flex items-center gap-4">
                             <div className="p-3 bg-yellow-500/10 text-yellow-500 rounded-2xl"><i data-lucide="trophy"></i></div>
                             <div>
                                 <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">MVP Champion</p>
-                                <p className="text-lg font-black text-white">{currentStandings[0]?.name} — {currentStandings[0]?.history[5]?.toLocaleString()} reached</p>
+                                <p className="text-lg font-black text-white">{currentStandings[0]?.name} — {formatNum(currentStandings[0]?.history[totalSteps])} reached</p>
                             </div>
                         </div>
                         <div className="flex-1 bg-slate-900/80 p-5 rounded-3xl border border-slate-800 flex items-center gap-4">
                             <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-2xl"><i data-lucide="target"></i></div>
                             <div>
                                 <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Total Reach</p>
-                                <p className="text-lg font-black text-white">{totalReach.toLocaleString()} Members</p>
+                                <p className="text-lg font-black text-white">{formatNum(totalReach)} Members</p>
                             </div>
                         </div>
                         <div className="flex-[2] bg-slate-900/80 p-5 rounded-3xl border border-slate-800 flex items-center gap-4 overflow-hidden">
@@ -287,7 +302,7 @@
                                         <div key={label} className="flex items-center gap-2 shrink-0 border-r border-slate-800 pr-6 last:border-0">
                                             <MiniFlag region={Object.keys(REGION_THEMES).find(k => REGION_THEMES[k].label === label)} />
                                             <span className="text-[9px] font-black text-slate-400">{label}:</span>
-                                            <span className="text-sm font-mono font-bold text-white">{val.toLocaleString()}</span>
+                                            <span className="text-sm font-mono font-bold text-white">{formatNum(val)}</span>
                                         </div>
                                     ))}
                                 </div>
