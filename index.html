@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Sprint Evolution - Presentation Mode</title>
+    <!-- React & Babel CDNs -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #020617; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        .custom-scrollbar-h::-webkit-scrollbar { height: 2px; }
+        .custom-scrollbar-h::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar-h::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // --- COMPONENTS ---
+
+        const MiniFlag = ({ region }) => {
+            if (region === 'UK') {
+                return (
+                    <svg viewBox="0 0 60 30" className="w-5 h-3 rounded-sm shadow-sm border border-slate-700/40 shrink-0">
+                        <path d="M0,0 v30 h60 v-30 z" fill="#012169" />
+                        <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" strokeWidth="6" />
+                        <path d="M0,0 L60,30 M60,0 L0,30" stroke="#C8102E" strokeWidth="4" />
+                        <path d="M30,0 v30 M0,15 h60" stroke="#fff" strokeWidth="10" />
+                        <path d="M30,0 v30 M0,15 h60" stroke="#C8102E" strokeWidth="6" />
+                    </svg>
+                );
+            }
+            if (region === 'ScandI') {
+                return (
+                    <svg viewBox="0 0 30 20" className="w-5 h-3.5 rounded-sm shadow-sm border border-slate-700/40 shrink-0">
+                        <rect width="30" height="20" fill="#C8102E" />
+                        <rect x="8" width="3" height="20" fill="white" />
+                        <rect y="8" width="30" height="3" fill="white" />
+                    </svg>
+                );
+            }
+            const flagData = {
+                Medi: { colors: ["#AD1519", "#FABD00", "#AD1519"] },
+                Dach: { colors: ["#000000", "#DD0000", "#FFCE00"] },
+                Benelux: { colors: ["#AE1C28", "#FFFFFF", "#21468B"] }
+            };
+            const data = flagData[region] || { colors: ["#ccc"] };
+            return (
+                <svg viewBox="0 0 30 20" className="w-5 h-3.5 rounded-sm shadow-sm border border-slate-700/40 shrink-0">
+                    {data.colors.map((c, i) => (
+                        <rect key={i} x="0" y={(i * 20) / data.colors.length} width="30" height={20 / data.colors.length} fill={c} />
+                    ))}
+                </svg>
+            );
+        };
+
+        const REGION_THEMES = {
+            UK: { color: "#6366f1", label: "UK" },
+            ScandI: { color: "#10b981", label: "SCANDI" },
+            Medi: { color: "#f43f5e", label: "MEDI" },
+            Dach: { color: "#f59e0b", label: "DACH" },
+            Benelux: { color: "#8b5cf6", label: "BENELUX" },
+        };
+
+        const INITIAL_DATA = [
+            { id: 1, name: "Zofia", score: 1380, region: "Medi" },
+            { id: 2, name: "Rune", score: 10056, region: "Dach" },
+            { id: 3, name: "Trine", score: 0, region: "Benelux" },
+            { id: 4, name: "Jonas", score: 37, region: "UK" },
+            { id: 5, name: "Johan", score: 805, region: "ScandI" },
+            { id: 6, name: "Alex", score: 0, region: "Benelux" },
+            { id: 7, name: "Niklas", score: 227, region: "UK" },
+            { id: 8, name: "Dan", score: 4139, region: "UK" },
+            { id: 9, name: "Igne", score: 2046, region: "ScandI" },
+            { id: 10, name: "Pablo", score: 264, region: "Medi" },
+            { id: 11, name: "Thomas", score: 1766, region: "Dach" },
+            { id: 12, name: "Isabel", score: 2437, region: "Medi" },
+        ];
+
+        const App = () => {
+            const containerRef = useRef(null);
+            const [isFullscreen, setIsFullscreen] = useState(false);
+            const [currentStep, setCurrentStep] = useState(0);
+            const [isAnimating, setIsAnimating] = useState(false);
+
+            const people = useMemo(() => 
+                INITIAL_DATA.map(p => {
+                    const history = [0];
+                    let current = 0;
+                    for(let i=1; i<5; i++) {
+                        let step;
+                        if ((p.name === 'Rune' || p.name === 'Dan') && i < 4) {
+                            step = (p.score * 0.04) * (0.5 + Math.random());
+                        } else if ((p.name === 'Rune' || p.name === 'Dan') && i === 4) {
+                            step = (p.score * 0.75) * (0.9 + Math.random() * 0.2);
+                        } else {
+                            step = (p.score / 5) * (0.4 + Math.random() * 0.8);
+                        }
+                        current = Math.min(p.score, Math.floor(current + step));
+                        history.push(current);
+                    }
+                    history.push(p.score);
+                    return { ...p, history, color: REGION_THEMES[p.region]?.color || "#cbd5e1" };
+                })
+            , []);
+
+            const maxScore = 11000;
+            const timeLabels = ["Start", "Week 1", "Week 2", "Week 3", "Week 4", "Final"];
+
+            const currentStandings = useMemo(() => 
+                [...people].sort((a, b) => b.history[currentStep] - a.history[currentStep])
+            , [people, currentStep]);
+
+            const totalReach = useMemo(() => 
+                people.reduce((acc, p) => acc + p.history[currentStep], 0)
+            , [people, currentStep]);
+
+            const sortedClusterTotals = useMemo(() => {
+                const totals = {};
+                people.forEach(p => {
+                    const label = REGION_THEMES[p.region].label;
+                    totals[label] = (totals[label] || 0) + p.history[currentStep];
+                });
+                return Object.entries(totals).sort(([, a], [, b]) => b - a);
+            }, [people, currentStep]);
+
+            const toggleFullscreen = () => {
+                if (!document.fullscreenElement) {
+                    containerRef.current.requestFullscreen().catch(err => alert("Error: " + err.message));
+                } else {
+                    document.exitFullscreen();
+                }
+            };
+
+            useEffect(() => {
+                const handleFs = () => setIsFullscreen(!!document.fullscreenElement);
+                document.addEventListener('fullscreenchange', handleFs);
+                return () => document.removeEventListener('fullscreenchange', handleFs);
+            }, []);
+
+            useEffect(() => {
+                let interval;
+                if (isAnimating && currentStep < 5) {
+                    interval = setInterval(() => {
+                        setCurrentStep(prev => (prev < 5 ? prev + 1 : 5));
+                    }, 1500);
+                } else {
+                    setIsAnimating(false);
+                }
+                return () => clearInterval(interval);
+            }, [isAnimating, currentStep]);
+
+            return (
+                <div ref={containerRef} className="h-screen bg-slate-950 text-slate-100 p-6 flex flex-col overflow-hidden">
+                    {/* Header */}
+                    <header className="flex justify-between items-center mb-6 bg-slate-900/60 p-5 rounded-3xl border border-slate-800 shadow-2xl shrink-0">
+                        <div className="flex items-center gap-5">
+                            <div className="bg-indigo-600 p-3 rounded-2xl shadow-lg">
+                                <i data-lucide="bar-chart-2" className="text-white w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-black bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent uppercase tracking-tight italic leading-none">
+                                    Performance Evolution
+                                </h1>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-1">Regional Member Reach Analytics</p>
+                            </div>
+                        </div>
+                        
+                        <div className="flex gap-3">
+                            <button onClick={() => { setCurrentStep(0); setIsAnimating(true); }} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-2xl font-black text-sm transition-all transform active:scale-95 shadow-xl shadow-indigo-900/40">
+                                <i data-lucide="play" className="w-4 h-4 fill-current"></i> PLAY
+                            </button>
+                            <button onClick={() => { setIsAnimating(false); setCurrentStep(0); }} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-2xl border border-slate-700 text-slate-400 transition-colors">
+                                <i data-lucide="rotate-ccw" className="w-5 h-5"></i>
+                            </button>
+                            <button onClick={toggleFullscreen} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-2xl border border-slate-700 text-slate-400 transition-colors">
+                                {isFullscreen ? <i data-lucide="minimize" className="w-5 h-5"></i> : <i data-lucide="maximize" className="w-5 h-5"></i>}
+                            </button>
+                        </div>
+                    </header>
+
+                    {/* Main Content */}
+                    <div className="flex-1 grid grid-cols-12 gap-6 min-h-0 mb-4">
+                        {/* Sidebar Standings */}
+                        <div className="col-span-2 bg-slate-900/40 rounded-3xl border border-slate-800 p-4 flex flex-col min-h-0">
+                            <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-4 flex justify-between items-center">
+                                Standings <i data-lucide="users" className="w-3 h-3"></i>
+                            </h3>
+                            <div className="flex-1 overflow-y-auto space-y-1.5 pr-2 custom-scrollbar">
+                                {currentStandings.map((person, idx) => (
+                                    <div key={person.id} className={`flex items-center justify-between p-2 rounded-xl border transition-all duration-500 ${idx === 0 && currentStep > 0 ? 'bg-indigo-600/20 border-indigo-500/40 scale-[1.02]' : 'bg-slate-900/80 border-slate-800'}`}>
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <span className="text-[10px] font-mono text-slate-600 w-4 shrink-0">{idx + 1}</span>
+                                            <MiniFlag region={person.region} />
+                                            <span className="text-xs font-bold truncate text-slate-200">{person.name}</span>
+                                        </div>
+                                        <span className="text-[11px] font-mono font-bold text-indigo-400">{person.history[currentStep]}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Main Graph Area */}
+                        <div className="col-span-10 bg-slate-900/20 rounded-3xl border border-slate-800 p-8 flex flex-col relative min-h-0 shadow-2xl">
+                            {/* Y-Axis Labels */}
+                            <div className="absolute left-4 top-8 bottom-24 flex flex-col justify-between text-[10px] font-mono text-slate-600">
+                                <span>11,000</span>
+                                <span>8,250</span>
+                                <span>5,500</span>
+                                <span>2,750</span>
+                                <span>0</span>
+                            </div>
+
+                            <div className="flex-1 ml-12 mb-16 relative border-l border-b border-slate-800/50 flex items-end justify-around px-4">
+                                {[0, 0.25, 0.5, 0.75, 1].map(v => (
+                                    <div key={v} className="absolute w-full h-px bg-slate-800/20 left-0" style={{ bottom: `${v * 100}%` }} />
+                                ))}
+
+                                {people.map((person) => {
+                                    const height = (person.history[currentStep] / maxScore) * 100;
+                                    const isLeader = person.id === currentStandings[0].id;
+                                    return (
+                                        <div key={person.id} className="h-full flex flex-col justify-end items-center group" style={{ width: '7%' }}>
+                                            <div className="w-full rounded-t-xl transition-all duration-1000 ease-out relative"
+                                                style={{ height: `${height}%`, backgroundColor: person.color, opacity: isLeader ? 1 : 0.75, boxShadow: isLeader ? `0 0 25px ${person.color}44` : 'none' }}>
+                                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 px-2 py-1 rounded text-[10px] font-mono border border-slate-700 z-10">
+                                                    {person.history[currentStep]}
+                                                </div>
+                                            </div>
+                                            <div className="absolute top-full mt-3 flex flex-col items-center w-full">
+                                                <span className={`text-[11px] font-black uppercase truncate w-full text-center ${isLeader ? 'text-indigo-400' : 'text-slate-300'}`}>
+                                                    {person.name}
+                                                </span>
+                                                <span className="text-[9px] font-bold text-slate-600 uppercase mt-0.5">{REGION_THEMES[person.region].label}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="flex justify-center gap-8 pt-4 border-t border-slate-800/40">
+                                {Object.entries(REGION_THEMES).map(([id, theme]) => (
+                                    <div key={id} className="flex items-center gap-3">
+                                        <MiniFlag region={id} />
+                                        <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">{theme.label}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Summary Footer */}
+                    <footer className={`mt-2 flex gap-4 transition-all duration-1000 ${currentStep === 5 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+                        <div className="flex-1 bg-slate-900/80 p-5 rounded-3xl border border-slate-800 flex items-center gap-4">
+                            <div className="p-3 bg-yellow-500/10 text-yellow-500 rounded-2xl"><i data-lucide="trophy"></i></div>
+                            <div>
+                                <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">MVP Champion</p>
+                                <p className="text-lg font-black text-white">{currentStandings[0]?.name} — {currentStandings[0]?.history[5]?.toLocaleString()} reached</p>
+                            </div>
+                        </div>
+                        <div className="flex-1 bg-slate-900/80 p-5 rounded-3xl border border-slate-800 flex items-center gap-4">
+                            <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-2xl"><i data-lucide="target"></i></div>
+                            <div>
+                                <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Total Reach</p>
+                                <p className="text-lg font-black text-white">{totalReach.toLocaleString()} Members</p>
+                            </div>
+                        </div>
+                        <div className="flex-[2] bg-slate-900/80 p-5 rounded-3xl border border-slate-800 flex items-center gap-4 overflow-hidden">
+                            <div className="p-3 bg-indigo-500/10 text-indigo-500 rounded-2xl"><i data-lucide="bar-chart-2"></i></div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-2">Cluster Totals (Leaderboard)</p>
+                                <div className="flex gap-6 overflow-x-auto custom-scrollbar-h pb-2">
+                                    {sortedClusterTotals.map(([label, val]) => (
+                                        <div key={label} className="flex items-center gap-2 shrink-0 border-r border-slate-800 pr-6 last:border-0">
+                                            <MiniFlag region={Object.keys(REGION_THEMES).find(k => REGION_THEMES[k].label === label)} />
+                                            <span className="text-[9px] font-black text-slate-400">{label}:</span>
+                                            <span className="text-sm font-mono font-bold text-white">{val.toLocaleString()}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+
+        // Refresh icons after render
+        setTimeout(() => lucide.createIcons(), 500);
+    </script>
+</body>
+</html>
