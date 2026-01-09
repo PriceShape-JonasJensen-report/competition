@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sales Sprint Evolution - Presentation Mode</title>
+    <title>LinkedIn Sales Sprint - December 2025</title>
     <!-- React & Babel CDNs -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -14,7 +14,13 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #020617; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #020617; 
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
@@ -30,6 +36,9 @@
         .animate-bounce-in {
             animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
+        .counter-glow {
+            text-shadow: 0 0 20px rgba(99, 102, 241, 0.6);
+        }
     </style>
 </head>
 <body>
@@ -38,13 +47,10 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef } = React;
 
-        // Helper to format numbers with dot as thousands separator (e.g. 10.056)
         const formatNum = (num) => {
             if (num === undefined || num === null) return "0";
             return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
         };
-
-        // --- COMPONENTS ---
 
         const MiniFlag = ({ region }) => {
             if (region === 'UK') {
@@ -111,42 +117,32 @@
             const [currentStep, setCurrentStep] = useState(0);
             const [isAnimating, setIsAnimating] = useState(false);
 
-            const totalSteps = 8; // Start + 7 Steps + Final = 9 points
+            const totalSteps = 8; 
 
             const people = useMemo(() => {
-                // First, sort the initial data alphabetically by name
                 const sortedAlphabetically = [...INITIAL_DATA].sort((a, b) => a.name.localeCompare(b.name));
-
                 return sortedAlphabetically.map(p => {
                     const history = [0];
                     let current = 0;
-                    // Run for 7 intermediate steps
                     for(let i=1; i < totalSteps; i++) {
                         let step;
-                        // Rune and Dan start extremely slow to build tension
                         if ((p.name === 'Rune' || p.name === 'Dan') && i < (totalSteps - 1)) {
-                            // Keep them crawling until the very end
                             step = (p.score * 0.02) * (0.5 + Math.random());
                         } else if ((p.name === 'Rune' || p.name === 'Dan') && i === (totalSteps - 1)) {
-                            // Huge surge in the final intermediate step
                             step = (p.score * 0.8) * (0.9 + Math.random() * 0.2);
                         } else {
-                            // Standard progression for others
                             step = (p.score / totalSteps) * (0.4 + Math.random() * 0.8);
                         }
                         current = Math.min(p.score, Math.floor(current + step));
                         history.push(current);
                     }
-                    // Always end with final score
                     history.push(p.score);
                     return { ...p, history, color: REGION_THEMES[p.region]?.color || "#cbd5e1" };
                 });
             }, []);
 
             const maxScore = 11000;
-            const timeLabels = ["Start", "Step 1", "Step 2", "Step 3", "Step 4", "Step 5", "Step 6", "Step 7", "Final"];
 
-            // Calculate current leaderboard standings (for MVP summary)
             const currentStandings = useMemo(() => 
                 [...people].sort((a, b) => b.history[currentStep] - a.history[currentStep])
             , [people, currentStep]);
@@ -166,9 +162,7 @@
 
             const toggleFullscreen = () => {
                 if (!document.fullscreenElement) {
-                    containerRef.current.requestFullscreen().catch(err => {
-                        console.log("Fullscreen blocked by browser policy. Use standard maximize if needed.");
-                    });
+                    containerRef.current.requestFullscreen().catch(() => {});
                 } else {
                     document.exitFullscreen();
                 }
@@ -197,7 +191,7 @@
             }, [currentStep, isAnimating]);
 
             return (
-                <div ref={containerRef} className="h-screen bg-slate-950 text-slate-100 p-6 flex flex-col overflow-hidden">
+                <div ref={containerRef} className="h-screen bg-slate-950 text-slate-100 p-6 flex flex-col overflow-hidden select-none">
                     {/* Header */}
                     <header className="flex justify-between items-center mb-6 bg-slate-900/60 p-5 rounded-3xl border border-slate-800 shadow-2xl shrink-0">
                         <div className="flex items-center gap-5">
@@ -206,15 +200,22 @@
                             </div>
                             <div>
                                 <h1 className="text-2xl font-black bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent uppercase tracking-tight italic leading-none">
-                                    LinkedIn Members reached 
+                                    LinkedIn Members Reached 
                                 </h1>
                                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-1">December 2025 competition</p>
                             </div>
                         </div>
+
+                        <div className="hidden lg:flex flex-col items-center justify-center bg-slate-950/50 px-10 py-2 rounded-2xl border border-indigo-500/30">
+                            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Live Global Reach</span>
+                            <span className="text-4xl font-black font-mono counter-glow text-white transition-all duration-500">
+                                {formatNum(totalReach)}
+                            </span>
+                        </div>
                         
                         <div className="flex gap-3">
-                            <button onClick={() => { setCurrentStep(0); setIsAnimating(true); }} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-2xl font-black text-sm transition-all transform active:scale-95 shadow-xl shadow-indigo-900/40">
-                                <i data-lucide="play" className="w-4 h-4 fill-current"></i> PLAY
+                            <button onClick={() => { setCurrentStep(0); setIsAnimating(true); }} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-2xl font-black text-sm transition-all transform active:scale-95 shadow-xl shadow-indigo-900/40">
+                                <i data-lucide="play" className="w-4 h-4 fill-current"></i> START SHOW
                             </button>
                             <button onClick={() => { setIsAnimating(false); setCurrentStep(0); }} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-2xl border border-slate-700 text-slate-400 transition-colors">
                                 <i data-lucide="rotate-ccw" className="w-5 h-5"></i>
@@ -225,90 +226,95 @@
                         </div>
                     </header>
 
-                    {/* Main Content */}
-                    <div className="flex-1 grid grid-cols-12 gap-6 min-h-0 mb-4">
-                        <div className="col-span-12 bg-slate-900/20 rounded-3xl border border-slate-800 p-8 flex flex-col relative min-h-0 shadow-2xl">
-                            {/* Y-Axis Labels */}
-                            <div className="absolute left-4 top-8 bottom-24 flex flex-col justify-between text-[10px] font-mono text-slate-600">
-                                <span>11.000</span>
-                                <span>8.250</span>
-                                <span>5.500</span>
-                                <span>2.750</span>
-                                <span>0</span>
-                            </div>
+                    {/* Main Chart Area */}
+                    <div className="flex-1 bg-slate-900/20 rounded-[2.5rem] border border-slate-800 p-10 flex flex-col relative min-h-0 shadow-2xl mb-6">
+                        <div className="absolute left-6 top-10 bottom-28 flex flex-col justify-between text-[10px] font-mono text-slate-600 border-r border-slate-800/50 pr-4">
+                            <span>11.000</span>
+                            <span>8.250</span>
+                            <span>5.500</span>
+                            <span>2.750</span>
+                            <span>0</span>
+                        </div>
 
-                            <div className="flex-1 ml-12 mb-16 relative border-l border-b border-slate-800/50 flex items-end justify-around px-4">
-                                {[0, 0.25, 0.5, 0.75, 1].map(v => (
-                                    <div key={v} className="absolute w-full h-px bg-slate-800/20 left-0" style={{ bottom: `${v * 100}%` }} />
-                                ))}
+                        <div className="flex-1 ml-16 mb-20 relative border-b border-slate-800/50 flex items-end justify-around px-4">
+                            {[0, 0.25, 0.5, 0.75, 1].map(v => (
+                                <div key={v} className="absolute w-full h-px bg-slate-800/20 left-0" style={{ bottom: `${v * 100}%` }} />
+                            ))}
 
-                                {people.map((person) => {
-                                    const height = (person.history[currentStep] / maxScore) * 100;
-                                    const isLeader = person.id === currentStandings[0].id;
-                                    return (
-                                        <div key={person.id} className="h-full flex flex-col justify-end items-center group" style={{ width: '7%' }}>
-                                            <div className="w-full rounded-t-xl transition-all duration-1000 ease-out relative"
-                                                style={{ height: `${height}%`, backgroundColor: person.color, opacity: isLeader ? 1 : 0.75, boxShadow: isLeader ? `0 0 25px ${person.color}44` : 'none' }}>
-                                                
-                                                {/* Final Count Label - Shown after animation is done */}
-                                                {currentStep === totalSteps && (
-                                                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 text-[12px] font-black text-white bg-slate-800/80 px-2 py-0.5 rounded-lg border border-slate-700 shadow-lg z-20 animate-bounce-in">
-                                                        {formatNum(person.score)}
-                                                    </div>
-                                                )}
+                            {people.map((person) => {
+                                const height = (person.history[currentStep] / maxScore) * 100;
+                                const isLeader = person.id === currentStandings[0].id;
+                                return (
+                                    <div key={person.id} className="h-full flex flex-col justify-end items-center" style={{ width: '7%' }}>
+                                        <div className="w-full rounded-t-2xl transition-all duration-1000 ease-out relative group"
+                                            style={{ height: `${height}%`, backgroundColor: person.color, opacity: isLeader ? 1 : 0.75, boxShadow: isLeader ? `0 0 35px ${person.color}55` : 'none' }}>
+                                            
+                                            {/* Step Counter */}
+                                            <div className={`absolute -top-8 left-1/2 -translate-x-1/2 text-[12px] font-mono font-bold transition-all duration-300 ${currentStep === totalSteps ? 'opacity-0' : 'text-indigo-300'}`}>
+                                                {formatNum(person.history[currentStep])}
+                                            </div>
 
-                                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 px-2 py-1 rounded text-[10px] font-mono border border-slate-700 z-10">
-                                                    {formatNum(person.history[currentStep])}
+                                            {/* Final Result */}
+                                            {currentStep === totalSteps && (
+                                                <div className="absolute -top-12 left-1/2 -translate-x-1/2 text-[14px] font-black text-white bg-slate-800 px-3 py-1 rounded-xl border border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.3)] z-20 animate-bounce-in">
+                                                    {formatNum(person.score)}
                                                 </div>
-                                            </div>
-                                            <div className="absolute top-full mt-3 flex flex-col items-center w-full text-center">
-                                                <span className={`text-[11px] font-black uppercase truncate w-full ${isLeader ? 'text-indigo-400' : 'text-slate-300'}`}>
-                                                    {person.name}
-                                                </span>
-                                                <span className="text-[9px] font-bold text-slate-600 uppercase mt-0.5">{REGION_THEMES[person.region].label}</span>
-                                            </div>
+                                            )}
                                         </div>
-                                    );
-                                })}
-                            </div>
-
-                            <div className="flex justify-center gap-8 pt-4 border-t border-slate-800/40">
-                                {Object.entries(REGION_THEMES).map(([id, theme]) => (
-                                    <div key={id} className="flex items-center gap-3">
-                                        <MiniFlag region={id} />
-                                        <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">{theme.label}</span>
+                                        <div className="absolute top-full mt-5 flex flex-col items-center w-full text-center">
+                                            <span className={`text-[12px] font-black uppercase truncate w-full tracking-tight ${isLeader ? 'text-indigo-400' : 'text-slate-200'}`}>
+                                                {person.name}
+                                            </span>
+                                            <span className="text-[9px] font-bold text-slate-600 uppercase mt-1 tracking-widest">{REGION_THEMES[person.region].label}</span>
+                                        </div>
                                     </div>
-                                ))}
-                            </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* Legend */}
+                        <div className="flex justify-center gap-10 pt-6 border-t border-slate-800/40 shrink-0">
+                            {Object.entries(REGION_THEMES).map(([id, theme]) => (
+                                <div key={id} className="flex items-center gap-3">
+                                    <MiniFlag region={id} />
+                                    <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">{theme.label}</span>
+                                </div>
+                            ))}
                         </div>
                     </div>
 
-                    {/* Summary Footer */}
-                    <footer className={`mt-2 flex gap-4 transition-all duration-1000 ${currentStep === totalSteps ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-                        <div className="flex-1 bg-slate-900/80 p-5 rounded-3xl border border-slate-800 flex items-center gap-4">
-                            <div className="p-3 bg-yellow-500/10 text-yellow-500 rounded-2xl"><i data-lucide="trophy"></i></div>
-                            <div>
-                                <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">MVP Champion</p>
-                                <p className="text-lg font-black text-white">{currentStandings[0]?.name} — {formatNum(currentStandings[0]?.history[totalSteps])} reached</p>
+                    {/* Footer Summary */}
+                    <footer className={`flex gap-6 transition-all duration-1000 transform ${currentStep === totalSteps ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+                        <div className="flex-1 bg-slate-900/80 p-6 rounded-[2rem] border border-slate-800 flex items-center gap-5">
+                            <div className="p-4 bg-yellow-500/10 text-yellow-500 rounded-2xl shadow-inner"><i data-lucide="trophy" className="w-8 h-8"></i></div>
+                            <div className="min-w-0">
+                                <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Winner</p>
+                                <p className="text-xl font-black text-white truncate leading-tight">
+                                    {currentStandings[0]?.name} — {formatNum(currentStandings[0]?.score)}
+                                </p>
                             </div>
                         </div>
-                        <div className="flex-1 bg-slate-900/80 p-5 rounded-3xl border border-slate-800 flex items-center gap-4">
-                            <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-2xl"><i data-lucide="target"></i></div>
+
+                        <div className="flex-1 bg-slate-900/80 p-6 rounded-[2rem] border border-slate-800 flex items-center gap-5">
+                            <div className="p-4 bg-emerald-500/10 text-emerald-500 rounded-2xl shadow-inner"><i data-lucide="target" className="w-8 h-8"></i></div>
                             <div>
-                                <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Total Reach</p>
-                                <p className="text-lg font-black text-white">{formatNum(totalReach)} Members</p>
+                                <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Collective Impact</p>
+                                <p className="text-xl font-black text-white leading-tight">{formatNum(totalReach)} reached</p>
                             </div>
                         </div>
-                        <div className="flex-[2] bg-slate-900/80 p-5 rounded-3xl border border-slate-800 flex items-center gap-4 overflow-hidden">
-                            <div className="p-3 bg-indigo-500/10 text-indigo-500 rounded-2xl"><i data-lucide="bar-chart-2"></i></div>
+
+                        <div className="flex-[2] bg-slate-900/80 p-6 rounded-[2rem] border border-slate-800 flex items-center gap-5">
+                            <div className="p-4 bg-indigo-500/10 text-indigo-500 rounded-2xl shadow-inner"><i data-lucide="layers" className="w-8 h-8"></i></div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-2">Cluster Totals (Leaderboard)</p>
-                                <div className="flex gap-6 overflow-x-auto custom-scrollbar-h pb-2">
+                                <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-3">Regional Leaderboard (Sorted)</p>
+                                <div className="flex gap-8 overflow-x-auto custom-scrollbar-h pb-2">
                                     {sortedClusterTotals.map(([label, val]) => (
-                                        <div key={label} className="flex items-center gap-2 shrink-0 border-r border-slate-800 pr-6 last:border-0">
+                                        <div key={label} className="flex items-center gap-3 shrink-0 border-r border-slate-800/50 pr-8 last:border-0">
                                             <MiniFlag region={Object.keys(REGION_THEMES).find(k => REGION_THEMES[k].label === label)} />
-                                            <span className="text-[9px] font-black text-slate-400">{label}:</span>
-                                            <span className="text-sm font-mono font-bold text-white">{formatNum(val)}</span>
+                                            <div>
+                                                <span className="text-[10px] font-black text-slate-500 uppercase block mb-0.5">{label}</span>
+                                                <span className="text-lg font-mono font-bold text-white">{formatNum(val)}</span>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
