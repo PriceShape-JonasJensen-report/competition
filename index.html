@@ -166,7 +166,9 @@
 
             const toggleFullscreen = () => {
                 if (!document.fullscreenElement) {
-                    containerRef.current.requestFullscreen().catch(err => alert("Error: " + err.message));
+                    containerRef.current.requestFullscreen().catch(err => {
+                        console.log("Fullscreen blocked by browser policy. Use standard maximize if needed.");
+                    });
                 } else {
                     document.exitFullscreen();
                 }
@@ -189,6 +191,10 @@
                 }
                 return () => clearInterval(interval);
             }, [isAnimating, currentStep]);
+
+            useEffect(() => {
+                lucide.createIcons();
+            }, [currentStep, isAnimating]);
 
             return (
                 <div ref={containerRef} className="h-screen bg-slate-950 text-slate-100 p-6 flex flex-col overflow-hidden">
@@ -315,9 +321,6 @@
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
-
-        // Refresh icons after render
-        setTimeout(() => lucide.createIcons(), 500);
     </script>
 </body>
 </html>
